@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="../js/vue.min.js"></script>
+  <script src="../js/axios.min.js"></script>
+  <script src="../js/param.js"></script>
+  <title>银行管理系统</title>
+  <style>
+    /* 全局样式 */
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: linear-gradient(135deg, #74ebd5 0%, #ACB6E5 100%);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: hidden;
+    }
+
+    .header {
+      background-color: #f8f9fa;
+      height: 60px;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      transition: background-color 0.3s ease;
+    }
+
+    .header:hover {
+      background-color: #e0e0e0;
+    }
+
+    .header div {
+      flex: 1;
+    }
+
+    h2,
+    h4 {
+      margin: 0;
+    }
+
+    .main_body {
+      display: flex;
+      width: 100%;
+      height: calc(100vh - 60px);
+    }
+
+    /* 侧边栏样式 */
+    .sidebar {
+      background-color: #343a40;
+      width: 200px;
+      height: 100%;
+      padding: 20px;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .sidebar ul {
+      list-style-type: none;
+      padding: 0;
+    }
+
+    .sidebar li {
+      padding: 10px 0;
+      margin-top: 10px;
+      text-align: center;
+      cursor: pointer;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    .sidebar li:hover {
+      background-color: #495057;
+      transform: translateX(5px);
+    }
+
+    .content {
+      padding: 20px;
+      flex: 1;
+      overflow-y: auto;
+      background-color: white;
+      border-radius: 10px;
+      margin: 10px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      animation: fadeIn 0.5s ease;
+    }
+
+    /* 表单样式 */
+    .cash_container,
+    .modify-container {
+      background-color: white;
+      padding: 20px;
+      border-radius: 10px;
+      width: 400px;
+
+      box-shadow: 0px 0px 15px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .cash_container:hover,
+    .modify-container:hover {
+      transform: scale(1.02);
+      box-shadow: 0px 0px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    h2 {
+      text-align: center;
+      color: #007bff;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #495057;
+    }
+
+    input[type="text"],
+    input[type="password"],
+    select {
+      width: 100%;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    input[type="text"]:focus,
+    input[type="password"]:focus,
+    select:focus {
+      border-color: #007bff;
+      box-shadow: 0px 0px 10px rgba(0, 123, 255, 0.5);
+    }
+
+    input[type="submit"] {
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+      width: 100%;
+      font-size: 18px;
+      padding: 12px;
+      border-radius: 5px;
+      border: none;
+      transition: background-color 0.3s ease, transform 0.3s ease;
+    }
+
+    input[type="submit"]:hover {
+      background-color: #0056b3;
+      transform: scale(1.05);
+    }
+
+    /* 表格样式 */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    table,
+    th,
+    td {
+      border: 1px solid #ccc;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background-color: #f8f9fa;
+      color: #343a40;
+    }
+
+    tr:hover {
+      background-color: #f1f1f1;
+    }
+
+    /* 动画效果 */
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+  </style>
+  <script>
+    window.onload = function () {
+      var vm = new Vue({
+        el: "#app",
+        data: {
+          user_operation: true,
+          user_record: false,
+          loan_request :false,
+          user_modify: false,
+          
+          baseurl: base_url,
+
+          // 用户登录信息
+          mobile: "",
+          token: "",
+          userinfo: {},
+          balance: "",
+
+          // 用户信息更改
+          password: "",
+          repassword: "",
+          new_name: "",
+          new_address: "",
+          new_mobile: "",
+
+          // 存取钱转账
+          transfer_model: false,
+          cashType: "0",
+          cashsaving: "",
+          cashNo: "",
+
+          loan_request: false,
+          loanmoney: "",
+          loanmonth: "",
+
+          // 交易记录
+          translist: [],
+        },
+        methods: {
+          cash_operation: function () {
+            this.user_operation = true;
+            this.user_record = false;
+            this.loan_request = false;
+            this.user_modify = false;
+          },
+          cash_record: function () {
+            this.user_operation = false;
+            this.loan_request = false;
+            this.user_record = true;
+            this.user_modify = false;
+
+            axios
+              .post(this.baseurl + "/user/transaction", {})
+              .then((res) => {
+                if (res.data.success) {
+                  this.translist = res.data.data;
+                } else {
+                  alert(res.data.message);
+                }
+              })
+              .catch((error) => {
+                alert("查询失败");
+                console.log(error);
+              });
+          },
+          user_info: function () {
+            this.user_operation = false;
+            this.user_record = false;
+            this.loan_request = false;
+            this.user_modify = true;
+          },
+          user_logout: function () {
+            console.log("退出登录");
+            axios
+              .post(this.baseurl + "/logout")
+              .then((res) => {
+                if (res.data.success) {
+                  sessionStorage.removeItem("token");
+                  sessionStorage.removeItem("mobile");
+                  window.location.href = "../index.html";
+                }
+              })
+              .catch((error) => {
+                alert("退出失败");
+                console.log(error);
+              });
+          },
+
+          loan_operation: function () {
+            this.user_operation = false;
+            this.user_record = false;
+            this.user_modify = false;
+            this.loan_request = true; // 显示贷款申请表单
+          },
+          submitLoanRequest: function () {
+            if (this.loanmoney <= 0 || this.loanmonth <= 0) {
+              alert("请输入有效的贷款金额和期限");
+              return;
+            }
+
+            axios
+              .post(this.baseurl + "/user/loan", {
+                loanmoney: this.loanmoney,
+                loanmonth: this.loanmonth,
+              })
+              .then((res) => {
+                if (res.data.success) {
+                  alert("贷款申请成功");
+                  // 其他逻辑，如刷新数据
+                } else {
+                  alert(res.data.message);
+                }
+              })
+              .catch((error) => {
+                alert("申请失败");
+                console.log(error);
+              });
+          },
+
+
+          update_userinfo: function () {
+            if (this.password.length == 0 && this.repassword.length == 0) {
+              alert("请输入正确密码");
+              return false;
+            }
+            axios
+              .post(this.baseurl + "/user/update", {
+                password: this.password,
+                repassword: this.repassword,
+                name: this.new_name,
+                address: this.new_address,
+                mobile: this.new_mobile,
+              })
+              .then((res) => {
+                if (res.data.success) {
+                  alert("修改成功，请重新登录");
+                  this.user_logout();
+                } else {
+                  alert(res.data.message);
+                }
+              })
+              .catch((error) => {
+                alert("修改失败");
+                console.log(error);
+              });
+          },
+          showtransfer: function () {
+            if (this.cashType == "2") {
+              this.transfer_model = true;
+            } else {
+              this.transfer_model = false;
+            }
+          },
+          cashdodo: function () {
+            if (this.cashsaving <= 0) {
+              alert("请输入金额");
+              return false;
+            }
+
+            switch (this.cashType) {
+              case "0":
+                axios
+                  .post(this.baseurl + "/user/money", {
+                    type: "0",
+                    amount: this.cashsaving * 100,
+                  })
+                  .then((res) => {
+                    if (res.data.success) {
+                      alert("存款成功");
+                      location.reload();
+                    } else {
+                      alert(res.data.message);
+                    }
+                  })
+                  .catch((error) => {
+                    alert("请求失败");
+                    console.log(error);
+                  });
+                break;
+              case "1":
+                axios
+                  .post(this.baseurl + "/user/money", {
+                    type: "1",
+                    amount: this.cashsaving * 100,
+                  })
+                  .then((res) => {
+                    if (res.data.success) {
+                      alert("取款成功");
+                      location.reload();
+                    } else {
+                      alert(res.data.message);
+                    }
+                  })
+                  .catch((error) => {
+                    alert("请求失败");
+                    console.log(error);
+                  });
+                break;
+              case "2":
+                if (this.cashNo == "") {
+                  alert("请输入转账账号");
+                  return false;
+                }
+                axios
+                  .post(this.baseurl + "/user/money", {
+                    type: "2",
+                    amount: this.cashsaving * 100,
+                    cardNo: this.cashNo,
+                  })
+                  .then((res) => {
+                    if (res.data.success) {
+                      alert("转账成功");
+                      location.reload();
+                    } else {
+                      alert(res.data.message);
+                    }
+                  })
+                  .catch((error) => {
+                    alert("请求失败");
+                    console.log(error);
+                  });
+                break;
+            }
+          },
+          showtime: function () {
+            var nowdate = new Date();
+
+            var year = nowdate.getFullYear(),
+              month = nowdate.getMonth() + 1,
+              date = nowdate.getDate(),
+              day = nowdate.getDay(),
+              week = [
+                "星期日",
+                "星期一",
+                "星期二",
+                "星期三",
+                "星期四",
+                "星期五",
+                "星期六",
+              ];
+            return (
+              year + "年" + month + "月" + date + "日" + " - " + week[day]
+            );
+          },
+        },
+        mounted: async function () {
+          this.token = sessionStorage.getItem("token");
+          this.mobile = sessionStorage.getItem("mobile");
+          if (!this.token) {
+            alert("请先登录");
+            window.location.href = "../index.html";
+          } else {
+            axios.defaults.headers["token"] = this.token;
+            axios.defaults.headers["Accept"] = "*";
+            axios.defaults.headers["Content-Type"] =
+              "application/x-www-form-urlencoded";
+
+            await axios
+              .post(this.baseurl + "/user/info", {
+                mobile: this.mobile,
+              })
+              .then((res) => {
+                if (res.data.success) {
+                  this.userinfo = res.data.data[0];
+                  this.new_name = this.userinfo.name;
+                  this.new_address = this.userinfo.address;
+                  this.new_mobile = this.userinfo.mobile;
+                  this.balance = this.userinfo.balance;
+                } else {
+                  alert(res.data.message);
+                }
+              })
+              .catch((error) => {
+                alert("用户信息获取失败");
+              });
+          }
+        },
+      });
+    };
+  </script>
+</head>
+
+<body>
+  <div id="app">
+    <div class="header">
+      <div>
+        <h2>网上银行</h2>
+      </div>
+      <div><span>当前用户：</span><span>{{ userinfo.name }}</span></div>
+      <div><span>当前时间：</span><span>{{ showtime() }}</span></div>
+      <div>
+        <h4>Net Bank System</h4>
+      </div>
+    </div>
+    <div class="main_body">
+      <div class="sidebar">
+        <ul>
+          <li @click="cash_operation">资金交易</li>
+          <li @click="loan_operation">申请贷款</li>
+          <li @click="cash_record">查询交易记录</li>
+          <li @click="user_info">修改个人信息</li>
+          <li @click="user_logout">注销</li>
+        </ul>
+      </div>
+
+      <div class="content">
+        <div class="cash_operation" v-show="user_operation"
+          style="display: flex;flex-direction: column;align-items: center;">
+          <div class="cash_container" style="width: 500px;height: 300px;margin-top: 5%;">
+            <h2>余额: <span>{{ balance / 100 }}</span></h2>
+            <div class="cashdodo">
+              <div>
+                <label for="cashType">选择操作:</label>
+                <select id="cashType" v-model="cashType" @change="showtransfer">
+                  <option value="0">存钱</option>
+                  <option value="1">取钱</option>
+                  <option value="2">转账</option>
+                </select>
+              </div>
+              <div style="margin-right: 20px;margin-top: 20px;">
+                <label for="fund">金额</label>
+                <input type="text" id="fund" placeholder="金额" v-model="cashsaving" />
+              </div>
+              <div v-show="transfer_model" style="margin-right: 20px;">
+                <label for="cardNumber">卡号</label>
+                <input type="text" id="cardNumber" placeholder="卡号" v-model="cashNo" />
+              </div>
+
+            </div>
+            <div style="margin-top: 25px;">
+              <input type="submit" value="提交" @click="cashdodo" />
+            </div>
+          </div>
+        </div>
+
+        <table v-show="user_record">
+          <thead>
+            <tr>
+              <th colspan="7">交易记录一览表</th>
+            </tr>
+            <tr>
+              <th>序号</th>
+              <th>对方类型</th>
+              <th>交易金额</th>
+              <th>交易日期</th>
+              <th>IP 地址</th>
+              <th>城市</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(item, index) in translist" :key="index">
+              <td>{{ index + 1 }}</td>
+              <td v-if="item.transactionType == 0">取钱</td>
+              <td v-else-if="item.transactionType == 1">存入</td>
+              <td v-else-if="item.transactionType == 2">转账：{{ item.toUserCardNo }}</td>
+              <td>{{ item.amount / 100 }}</td>
+              <td>{{ item.create_time.slice(0, 10) }}</td>
+              <td>{{ item.IP }}</td>
+              <td v-if="item.city == `Chengdu` ">成都（中国）</td>
+              <td v-else-if="item.city == `Beijing` ">北京（中国）</td>
+              <td v-else-if="item.city == `Phoenix City` ">菲尼克斯（美国）</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="user_modify" v-show="user_modify" style="display: flex;flex-direction: column;align-items: center;">
+          <div class="modify-container" style="margin-top: 5%;">
+            <h2>个人信息</h2>
+            <div class="infoupdate" style="margin-right: 20px;">
+              <div>
+                <label for="cardType">卡类型</label>
+                <input type="text" value="储蓄卡" disabled v-if="userinfo.cardType == 1" />
+                <input type="text" value="信用卡" disabled v-else-if="userinfo.cardType == 2" />
+                <input type="text" value="社保卡" disabled v-else-if="userinfo.cardType == 3" />
+              </div>
+              <div>
+                <label for="cardNumber">卡号</label>
+                <input type="text" disabled :value="userinfo.cardNo" />
+              </div>
+              <div>
+                <label for="password">密码</label>
+                <input type="password" id="password" placeholder="密码" v-model="password" />
+              </div>
+              <div>
+                <label for="re_password">确认密码</label>
+                <input type="password" id="re_password" placeholder="确认密码" v-model="repassword" />
+              </div>
+              <div>
+                <label for="username">用户名</label>
+                <input type="text" disabled :value="userinfo.nickname" />
+              </div>
+              <div>
+                <label for="name">姓名</label>
+                <input type="text" :value="userinfo.name" v-model="new_name" />
+              </div>
+              <div>
+                <label for="address">地址</label>
+                <input type="text" :value="userinfo.address" v-model="new_address" />
+              </div>
+              <div>
+                <label for="idNumber">身份证号</label>
+                <input type="text" :value="userinfo.idNum" disabled />
+              </div>
+              <div>
+                <label for="phoneNumber">手机号</label>
+                <input type="text" :value="userinfo.mobile" placeholder="手机号" v-model="new_mobile" />
+              </div>
+
+            </div>
+            <div style="margin-top: 20px;width: 100%;">
+              <input type="submit" value="修改" @click="update_userinfo" />
+            </div>
+          </div>
+        </div>
+        <div class="loan_request" v-show="loan_request" style="display: flex; flex-direction: column; align-items: center;">
+          <div class="cash_container" style="width: 400px; padding: 20px; margin-top: 5%;">
+            <h2>申请贷款beta</h2>
+            <label for="loanmoney">贷款金额</label>
+            <input type="text" id="loanmoney" style="width: 95%;" v-model="loanmoney" placeholder="请输入贷款金额" / >
+        
+            <label for="loanmonth">贷款期限（/月）</label>
+            <input type="text" id="loanmonth"  style="width: 95%;" v-model="loanmonth" placeholder="请输入贷款期限" />
+        
+            <div style="margin-top: 25px;">
+              <input type="submit" value="申请" @click="submitLoanRequest" />
+            </div>
+          </div>
+        </div>
+        
+
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>

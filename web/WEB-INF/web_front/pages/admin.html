@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="../js/vue.min.js"></script>
+  <script src="../js/axios.min.js"></script>
+  <script src="../js/param.js"></script>
+  <title>银行管理系统</title>
+  <style>
+    body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #f4f6f8;
+  overflow-y: hidden;
+  overflow-x: hidden;
+}
+
+.header {
+  background-color: #007bff;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  color: white;
+}
+
+.header input {
+  height: 35px;
+  width: 250px;
+  border-radius: 20px;
+  border: none;
+  padding: 0 15px;
+  margin-right: 20px;
+  outline: none;
+  transition: all 0.3s ease;
+}
+
+.header input:focus {
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+.header h1 {
+  font-size: 24px;
+  margin: 0;
+}
+
+.main_body {
+  display: flex;
+  width: 100%;
+}
+
+.sidebar {
+  background-color: #343a40;
+  width: 220px;
+  height: calc(100vh - 60px);
+  padding: 20px;
+  color: white;
+  transition: background-color 0.3s;
+}
+
+.sidebar ul {
+  list-style-type: none;
+  padding: 0;
+}
+
+.sidebar li {
+  padding: 15px 10px;
+  margin-top: 10px;
+  text-align: center;
+  cursor: pointer;
+  border-radius: 5px;
+  background-color: #0d67c2;
+  transition: background-color 0.3s;
+}
+
+.sidebar li:hover {
+  background-color: #007bff;
+}
+
+.content {
+  padding: 30px;
+  flex: 9;
+}
+
+.content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: 30px;
+}
+
+.content table,
+.content table th,
+.content table td {
+  border: 1px solid #ccc;
+}
+
+.content table th,
+.content table td {
+  padding: 15px;
+  text-align: center;
+}
+
+.content table td {
+  background-color: #495057;
+  color: white;
+}
+
+.content table tr:nth-child(even) {
+  background-color: #f2f2f2;
+}
+
+.table_heade{
+  background-color: #f2f2f2;
+}
+
+.register {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: calc(100vh - 115px);
+}
+
+.register-container {
+  background-color: white;
+  padding: 40px;
+  border-radius: 10px;
+  width: 400px;
+  box-shadow: 0px 0px 15px 0px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.register-container h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #007bff;
+}
+
+.register-container input,
+.register-container select {
+  width: 100%;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  margin-bottom: 15px;
+  transition: all 0.3s ease;
+}
+
+.register-container input:focus,
+.register-container select:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 10px rgba(0, 123, 255, 0.5);
+}
+
+.register-container input[type="submit"] {
+  background-color: #007bff;
+  color: white;
+  cursor: pointer;
+  font-size: 18px;
+  transition: background-color 0.3s ease;
+}
+
+.register-container input[type="submit"]:hover {
+  background-color: #0056b3;
+}
+
+.register-container input[type="submit"]:active {
+  background-color: #003f7f;
+}
+.table_header{
+  background-color: white;
+  color: black;
+}
+
+  </style>
+  <script>
+    window.onload = function () {
+      var vm = new Vue({
+        el: "#app",
+        data: {
+          user_list: true,
+          register_page: false,
+          baseurl: base_url,
+          token: "",
+
+          // 新用户信息
+          cash_type: 0,
+          cash_num: "",
+          cash_password: "",
+          cash_username: "",
+          cash_realname: "",
+          cash_address: "",
+          cash_idcard: "",
+          cash_mobile: "",
+          cash_status: "1",
+
+          //获取用户信息
+          userlist: [],
+        },
+        methods: {
+          // 创建新用户
+          register_new_user: function () {
+            alert("注册新用户");
+            axios
+              .post(this.baseurl + "/user/add", {
+                cardType: this.cash_type,
+                cardNo: this.cash_num,
+                password: this.cash_password,
+                nickname: this.cash_username,
+                name: this.cash_realname,
+                address: this.cash_address,
+                idNum: this.cash_idcard,
+                mobile: this.cash_mobile,
+                state: this.cash_status,
+              })
+              .then((res) => {
+                if (res.data.success) {
+                  alert("添加用户成功");
+                  this.cash_num = "";
+                  this.cash_password = "";
+                  this.cash_username = "";
+                  this.cash_realname = "";
+                  this.cash_address = "";
+                  this.cash_idcard = "";
+                  this.cash_mobile = "";
+                  this.cash_status = "";
+                  return false;
+                } else {
+                  alert(res.data.message);
+                }
+              })
+              .catch((error) => {
+                alert("创建失败");
+                console.log(error);
+              });
+          },
+          // 获取用户列表
+          checkuser: async function (type) {
+            this.register_page = false;
+            this.user_list = true;
+            switch (type) {
+              case 1:
+                console.log("全部账户");
+                await axios
+                  .post(this.baseurl + "/user/list", {})
+                  .then((res) => {
+                    if (res.data.success) {
+                      this.userlist = res.data.data;
+                    } else {
+                      alert(res.data.message);
+                    }
+                  })
+                  .catch((error) => {
+                    console.log(error);
+                  });
+                break;
+              case 2:
+                console.log("冻结账户");
+                await axios
+                  .post(this.baseurl + "/user/list", {
+                    state: "2",
+                  })
+                  .then((res) => {
+                    if (res.data.success) {
+                      this.userlist = res.data.data;
+                    } else {
+                      alert(res.data.message);
+                    }
+                  })
+                  .catch((error) => {
+                    console.log(error);
+                  });
+                break;
+
+              case 3:
+                console.log("启用账户");
+                await axios
+                  .post(this.baseurl + "/user/list", {
+                    state: "1",
+                  })
+                  .then((res) => {
+                    if (res.data.success) {
+                      this.userlist = res.data.data;
+                    } else {
+                      alert(res.data.message);
+                    }
+                  })
+                  .catch((error) => {
+                    console.log(error);
+                  });
+                break;
+            }
+          },
+
+          // 冻结或删除用户
+          dealuser: function (type, id) {
+            console.log(type, id);
+            axios
+              .post(this.baseurl + "/user/operation", {
+                userId: id,
+                operation: type,
+              })
+              .then((res) => {
+                if (res.data.success) {
+                  if (type == "freeze") {
+                    alert("冻结成功");
+                    location.reload();
+                  } else if (type == "unfreeze") {
+                    alert("解冻成功");
+                    location.reload();
+                  } else {
+                    alert("删除成功");
+                    location.reload();
+                  }
+                  this.checkuser();
+                } else {
+                  alert("操作失败：" + res.data.message);
+                }
+              })
+              .catch((error) => {
+                console.log(error);
+              });
+          },
+
+          register_user: function () {
+            this.user_list = false;
+            this.register_page = true;
+          },
+
+          // 退出登录
+          logout: function () {
+            console.log("退出登录");
+            axios
+              .post(this.baseurl + "/logout")
+              .then((res) => {
+                if (res.data.success) {
+                  sessionStorage.removeItem("token");
+                  window.location.href = "../index.html";
+                }
+              })
+              .catch((error) => {
+                alert("退出失败");
+                console.log(error);
+              });
+          },
+          searchContent: function (e) {
+            console.log(e.target.value);
+            axios
+              .post(this.baseurl + "/user/list", {
+                username: e.target.value,
+              })
+              .then((res) => {
+                if (res.data.success) {
+                  this.userlist = res.data.data;
+                } else {
+                  alert(res.data.message);
+                }
+              })
+              .catch((error) => {
+                console.log(error);
+              });
+          },
+        },
+        mounted: function () {
+          console.log("1");
+          this.token = sessionStorage.getItem("token");
+          if (!this.token) {
+            alert("请先登录");
+            window.location.href = "../index.html";
+          } else {
+            axios.defaults.headers["token"] = this.token;
+            axios.defaults.headers["Accept"] = "*";
+            axios.defaults.headers["Content-Type"] =
+              "application/x-www-form-urlencoded";
+            this.checkuser(1);
+          }
+        },
+      });
+    };
+  </script>
+</head>
+
+<body>
+  <div id="app">
+    <div class="header">
+      <input type="text" placeholder="用户搜索" @keyup.enter="searchContent($event)" />
+      <h1>银行后台管理系统</h1>
+    </div>
+    <div class="main_body">
+      <div class="sidebar">
+        <ul>
+          <li @click="checkuser(1)">所有账户</li>
+          <li @click="checkuser(2)">已冻结账户</li>
+          <li @click="checkuser(3)">已启用账户</li>
+          <li @click="register_user">开户</li>
+          <li @click="logout">注销</li>
+        </ul>
+      </div>
+
+      <div class="content">
+        <table v-show="user_list">
+          <thead class="table_header">
+            <tr>
+              <th>序列</th>
+              <th>账户名</th>
+              <th>余额</th>
+              <th>姓名</th>
+              <th>地址</th>
+              <th>身份证号</th>
+              <th>电话号码</th>
+              <th>状态</th>
+              <th colspan="2">操作</th>
+            </tr>
+          </thead>
+      
+          <tbody>
+            <tr v-for="item,index in userlist" :key="index">
+              <td>{{ index+1 }}</td>
+              <td>{{ item.name }}</td>
+              <td>{{ item.balance /100 }}</td>
+              <td>{{ item.nickname }}</td>
+              <td>{{ item.address }}</td>
+              <td>{{ item.idNum }}</td>
+              <td>{{ item.mobile }}</td>
+              <td v-if="item.state == 0">禁用</td>
+              <td v-else-if="item.state == 1">启用</td>
+              <td v-else-if="item.state == 2">冻结</td>
+              <td>
+                <a href="#" style="color: orange" @click="dealuser('unfreeze',item.id)" v-if="item.state == 2">启用</a>
+                <a href="#" style="color: orange" @click="dealuser('freeze',item.id)" v-else-if="item.state == 1">冻结</a>
+              </td>
+              <td>
+                <a href="#" style="color: red" @click="dealuser('delete',item.id)">删除</a>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div class="register" v-show="register_page"> 
+          <div class="register-container">
+            <h2>注册新用户</h2>
+            <div class="newuser">
+              <div>
+                <label for="cardType">卡类型</label>
+                <select id="cardType" v-model="cash_type">
+                  <option value="1" selected>储蓄卡</option>
+                  <option value="2">信用卡</option>
+                  <option value="3">社保卡</option>
+                </select>
+              </div>
+              <div style="margin-right: 10px;">
+                <label for="cardNumber">卡号</label>
+                <input type="text" id="cardNumber" placeholder="卡号" v-model="cash_num" />
+              </div>
+              <div style="margin-right: 15px;">
+                <label for="password">密码</label>
+                <input type="password" id="password" placeholder="登录密码" v-model="cash_password" />
+              </div>
+              <div style="margin-right: 15px;">
+                <label for="username">用户名</label>
+                <input type="text" id="username" placeholder="用户名" v-model="cash_username" />
+              </div>
+              <div style="margin-right: 15px;">
+                <label for="name">姓名</label>
+                <input type="text" id="name" placeholder="姓名" v-model="cash_realname" />
+              </div>
+              <div style="margin-right: 15px;">
+                <label for="address">地址</label>
+                <input type="text" id="address" placeholder="家庭住址" v-model="cash_address" />
+              </div>
+              <div style="margin-right: 15px;">
+                <label for="idNumber">身份证号</label>
+                <input type="text" id="idNumber" placeholder="身份证号" v-model="cash_idcard" />
+              </div>
+              <div >
+                <label for="phoneNumber">手机号</label>
+                <input type="text" id="phoneNumber" placeholder="手机号" v-model="cash_mobile" />
+              </div>
+              <div>
+                <label for="status">状态</label>
+                <select id="status" v-model="cash_status">
+                  <option value="0">禁用</option>
+                  <option value="1">启用</option>
+                  <option value="2">冻结</option>
+                </select>
+              </div>
+              <div>
+                <input type="submit" value="注册" @click="register_new_user" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+</html>
